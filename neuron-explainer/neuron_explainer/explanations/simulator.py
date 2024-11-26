@@ -615,7 +615,7 @@ def _parse_no_logprobs_completion(
     token_lines = completion.strip("\n").split("༗\n")
     start_line_index = None
     for i, token_line in enumerate(token_lines):
-        if token_line.startswith(f"{tokens[0]}\t"):
+        if token_line.strip().startswith(f"{tokens[0]}\t".strip()):
             start_line_index = i
             break
 
@@ -625,7 +625,7 @@ def _parse_no_logprobs_completion(
         return zero_prediction
     predicted_activations = []
     for i, token_line in enumerate(token_lines[start_line_index:]):
-        if not token_line.startswith(f"{tokens[i]}\t"):
+        if not token_line.strip().startswith(f"{tokens[i]}\t".strip()):
             return zero_prediction
         predicted_activation = token_line.split("\t")[1]
         if predicted_activation not in VALID_ACTIVATION_TOKENS:
@@ -718,7 +718,7 @@ class LogprobFreeExplanationTokenSimulator(NeuronSimulator):
             self.explanation,
         )
         response = await self.api_client.make_request(
-            prompt=prompt, echo=False, max_tokens=1000
+            messages=prompt, max_tokens=1000
         )
         assert len(response["choices"]) == 1
 
@@ -750,7 +750,7 @@ class LogprobFreeExplanationTokenSimulator(NeuronSimulator):
     ) -> Union[str, list[HarmonyMessage]]:
         """Make a few-shot prompt for predicting the neuron's activations on a sequence."""
         assert explanation != ""
-        prompt_builder = PromptBuilder(allow_extra_system_messages=True)
+        prompt_builder = PromptBuilder()
         prompt_builder.add_message(
             Role.SYSTEM,
             """We're studying neurons in a neural network. Each neuron looks for some particular thing in a short document. Look at  an explanation of what the neuron does, and try to predict its activations on a particular token.
@@ -795,4 +795,4 @@ For each sequence, you will see the tokens in the sequence where the activations
             f"Sequence 1 Tokens without Activations:\n{_format_record_for_logprob_free_simulation(ActivationRecord(tokens=tokens, activations=[]), include_activations=False)}\n\n"
             f"Sequence 1 Tokens with Activations:\n",
         )
-        return prompt_builder.build(self.prompt_format)
+        return prompt_builder.build(self.prompt_format, allow_extra_system_messages=True)
